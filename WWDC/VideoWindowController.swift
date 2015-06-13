@@ -11,6 +11,7 @@ import AVFoundation
 import AVKit
 import ASCIIwwdc
 import ViewUtils
+import IOKit.pwr_mgt
 
 private let _nibName = "VideoWindowController"
 
@@ -23,6 +24,32 @@ class VideoWindowController: NSWindowController {
     
     var asset: AVAsset!
     var item: AVPlayerItem!
+    private let sleepDepriver = PlaybackPower()
+    final private class PlaybackPower {
+        var powerAssertion: IOPMAssertionID = 0
+        
+        var sleepDeprived: Bool {
+            return powerAssertion != 0
+        }
+        
+        func beginSleepDeprevation() -> Bool {
+            if sleepDeprived {
+                return true
+            }
+            let success = IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep, IOPMAssertionLevel(kIOPMAssertionLevelOn), "WWDC playback", &powerAssertion)
+            if success != kIOReturnSuccess {
+                return false
+            }
+            return true
+        }
+        
+        func stopSleepDeprevation() {
+            if powerAssertion != 0 {
+                IOPMAssertionRelease(powerAssertion)
+                powerAssertion = 0
+            }
+        }
+    }
     
     var transcriptWC: TranscriptWindowController!
     var playerWindow: GRPlayerWindow {

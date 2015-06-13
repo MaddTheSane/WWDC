@@ -234,6 +234,7 @@
 				DD4F6E4D1AE2D11D0099BEB5 /* Products */,
 			);
 			sourceTree = "<group>";
+			usesTabs = 0;
 		};
 		DD4F6E4D1AE2D11D0099BEB5 /* Products */ = {
 			isa = PBXGroup;
