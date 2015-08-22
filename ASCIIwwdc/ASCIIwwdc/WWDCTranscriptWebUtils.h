@@ -8,9 +8,13 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface WWDCTranscriptWebUtils : NSObject
 
 + (NSURL *)htmlURL;
 + (NSURL *)baseURL;
 
 @end
+
+NS_ASSUME_NONNULL_END

@@ -8,14 +8,18 @@
 
 #import <Foundation/Foundation.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface ASCIIWWDCTranscriptIndexer : NSObject
 
-+ (ASCIIWWDCTranscriptIndexer  * __nonnull )sharedIndexer;
++ (ASCIIWWDCTranscriptIndexer  *)sharedIndexer;
 
-- (void)indexSessions:(NSArray *__nonnull)sessions;
+- (void)indexSessions:(NSArray *)sessions;
 
-- (BOOL)fullTextSearchFor:(NSString * __nonnull)query matches:(NSString * __nonnull)sessionUniqueKey;
+- (BOOL)fullTextSearchFor:(NSString *)query matches:(NSString *)sessionUniqueKey;
 
 @property (nonatomic, copy) void (^__nullable indexCompletionHandler)();
 
 @end
+
+NS_ASSUME_NONNULL_END

@@ -55,11 +55,9 @@ class VideoWindowController: NSWindowController {
     var player: AVPlayer? {
         didSet {
             if let player = player {
-                if let args = NSProcessInfo.processInfo().arguments as? [String] {
-                    if args.contains("zerovolume") {
+                    if NSProcessInfo.processInfo().arguments.contains("zerovolume") {
                         player.volume = 0
                     }
-                }
             }
         }
     }
@@ -69,7 +67,7 @@ class VideoWindowController: NSWindowController {
     override func windowDidLoad() {
         super.windowDidLoad()
         
-        activity = NSProcessInfo.processInfo().beginActivityWithOptions(.IdleDisplaySleepDisabled | .IdleSystemSleepDisabled, reason: "Playing WWDC session video")
+        activity = NSProcessInfo.processInfo().beginActivityWithOptions([.IdleDisplaySleepDisabled, .IdleSystemSleepDisabled], reason: "Playing WWDC session video")
 
         progressIndicator.startAnimation(nil)
         window?.backgroundColor = NSColor.blackColor()
@@ -80,7 +78,7 @@ class VideoWindowController: NSWindowController {
                 playerView.player = player
                 
                 // SESSION
-                player?.currentItem.asset.loadValuesAsynchronouslyForKeys(["tracks"]) {
+                player?.currentItem?.asset.loadValuesAsynchronouslyForKeys(["tracks"]) {
                     dispatch_async(dispatch_get_main_queue()) {
                         self.setupWindowSizing()
                         self.setupTimeObserver()
@@ -108,7 +106,7 @@ class VideoWindowController: NSWindowController {
         }
 
 		if Preferences.SharedPreferences().floatOnTopEnabled {
-			window!.level = Int(CGWindowLevelForKey(Int32(kCGFloatingWindowLevelKey)))
+			window!.level = Int(CGWindowLevelForKey(CGWindowLevelKey.FloatingWindowLevelKey))
 		}
         
         if let event = self.event {
@@ -135,11 +133,11 @@ class VideoWindowController: NSWindowController {
     }
     
     private func loadEventVideo() {
-        if let url = event!.appropriateURL {
+        if let url = event?.appropriateURL {
             
-            println("LIVE EVENT URL: \(url)")
+            print("LIVE EVENT URL: \(url)")
             
-            if let asset = AVURLAsset(URL: url, options: nil) {
+            let asset = AVURLAsset(URL: url, options: nil)
                 self.asset = asset
                 let keys = ["playable", "tracks"]
                 asset.loadValuesAsynchronouslyForKeys(keys) {
@@ -147,7 +145,7 @@ class VideoWindowController: NSWindowController {
                         var error: NSError?
                         let status = asset.statusOfValueForKey(key, error: &error)
                         if status == .Failed {
-                            println("[Live Session Playback] Failed to load status for key \(key) \(error)")
+                            print("[Live Session Playback] Failed to load status for key \(key) \(error)")
                             return
                         }
                     }
@@ -156,15 +154,14 @@ class VideoWindowController: NSWindowController {
                         self.playEventVideo()
                     }
                 }
-            }
         }
     }
     
     private func playEventVideo() {
-        if let playerItem = AVPlayerItem(asset: self.asset) {
+        let playerItem = AVPlayerItem(asset: self.asset)
             self.item = playerItem
             self.player = AVPlayer(playerItem: self.item)
-            self.item.addObserver(self, forKeyPath: "status", options: .Initial | .New, context: nil)
+            self.item.addObserver(self, forKeyPath: "status", options: [.Initial, .New], context: nil)
             
             if NSProcessInfo.processInfo().isElCapitan {
                 self.playerView.hidden = true
@@ -173,10 +170,9 @@ class VideoWindowController: NSWindowController {
             } else {
                 self.playerView.player = player
             }
-        }
     }
     
-    override func observeValueForKeyPath(keyPath: String, ofObject object: AnyObject, change: [NSObject : AnyObject], context: UnsafeMutablePointer<Void>) {
+    override func observeValueForKeyPath(keyPath: String?, ofObject object: AnyObject?, change: [String : AnyObject]?, context: UnsafeMutablePointer<Void>) {
         if keyPath == "status" {
             if item.status == .ReadyToPlay {
                 dispatch_async(dispatch_get_main_queue()) {
@@ -228,7 +224,7 @@ class VideoWindowController: NSWindowController {
         }
         
         timeObserver = player?.addPeriodicTimeObserverForInterval(CMTimeMakeWithSeconds(5, 1), queue: dispatch_get_main_queue()) { [unowned self] currentTime in
-            let progress = Double(CMTimeGetSeconds(currentTime)/CMTimeGetSeconds(self.player!.currentItem.duration))
+            let progress = Double(CMTimeGetSeconds(currentTime)/CMTimeGetSeconds(self.player!.currentItem!.duration))
 
             self.session!.progress = progress
             self.session!.currentPosition = CMTimeGetSeconds(currentTime)
@@ -256,7 +252,7 @@ class VideoWindowController: NSWindowController {
     {
         if let asset = player?.currentItem?.asset {
             // get video dimensions and set window aspect ratio
-            if let tracks = asset.tracksWithMediaType(AVMediaTypeVideo) as? [AVAssetTrack] {
+            let tracks = asset.tracksWithMediaType(AVMediaTypeVideo)
                 if tracks.count > 0 {
                     let track = tracks[0]
                     videoNaturalSize = track.naturalSize
@@ -264,9 +260,6 @@ class VideoWindowController: NSWindowController {
                 } else {
                     return
                 }
-            } else {
-                return
-            }
         } else {
             return
         }
@@ -286,12 +279,12 @@ class VideoWindowController: NSWindowController {
 	// Toggles if the window should float on top of all other windows
 	@IBAction func floatOnTop(sender: NSMenuItem) {
 		if sender.state == NSOnState {
-			window!.level = Int(CGWindowLevelForKey(Int32(kCGNormalWindowLevelKey)))
+			window!.level = Int(CGWindowLevelForKey(CGWindowLevelKey.NormalWindowLevelKey))
 			Preferences.SharedPreferences().floatOnTopEnabled = false
 
 			sender.state = NSOffState
 		} else {
-			window!.level = Int(CGWindowLevelForKey(Int32(kCGFloatingWindowLevelKey)))
+			window!.level = Int(CGWindowLevelForKey(CGWindowLevelKey.FloatingWindowLevelKey))
 			Preferences.SharedPreferences().floatOnTopEnabled = true
 
 			sender.state = NSOnState

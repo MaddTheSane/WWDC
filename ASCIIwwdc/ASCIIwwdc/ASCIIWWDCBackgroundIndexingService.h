@@ -10,7 +10,7 @@
 
 @interface ASCIIWWDCBackgroundIndexingService : NSObject
 
-+ (void)runWithSessions:(NSArray *)sessions;
++ (void)runWithSessions:(NSArray /*<NSDictionary<NSString*, NSNumber*>*>*/ *)sessions;
 + (BOOL)hasIndex;
 
 @end

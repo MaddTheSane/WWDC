@@ -36,7 +36,7 @@ class TranscriptStore {
             outputSessions.append(["year": session.year, "id": session.id])
         }
         
-        ASCIIWWDCBackgroundIndexingService.runWithSessions(outputSessions)
+		ASCIIWWDCBackgroundIndexingService.runWithSessions(outputSessions)
     }
     
 }

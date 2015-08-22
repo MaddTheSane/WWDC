@@ -64,18 +64,17 @@ class DownloadListWindowController: NSWindowController, NSTableViewDelegate, NST
 
 		let nc = NSNotificationCenter.defaultCenter()
 		self.downloadStartedHndl = nc.addObserverForName(VideoStoreNotificationDownloadStarted, object: nil, queue: NSOperationQueue.mainQueue()) { note in
-			let url = note.object as! String?
-			if url != nil {
+			if let url = note.object as? String {
 				let (item, idx) = self.listItemForURL(url)
 				if item != nil {
 					return
 				}
 				let tasks = self.videoStore.allTasks()
 				for task in tasks {
-					if let _url = task.originalRequest.URL?.absoluteString where _url == url {
+					if let _url = task.originalRequest?.URL?.absoluteString where _url == url {
 						let sessions = DataStore.SharedStore.cachedSessions!
 						let session = sessions.filter { $0.hd_url == url }.first
-						var item = DownloadListItem(url: url!, session: session!, task: task)
+						let item = DownloadListItem(url: url, session: session!, task: task)
 						self.items.append(item)
 						self.tableView.insertRowsAtIndexes(NSIndexSet(index: self.items.count), withAnimation: .SlideUp)
 					}
@@ -83,8 +82,7 @@ class DownloadListWindowController: NSWindowController, NSTableViewDelegate, NST
 			}
 		}
 		self.downloadFinishedHndl = nc.addObserverForName(VideoStoreNotificationDownloadFinished, object: nil, queue: NSOperationQueue.mainQueue()) { note in
-			if let object = note.object as? String {
-				let url = object as String
+			if let url = note.object as? String {
 				let (item, idx) = self.listItemForURL(url)
 				if item != nil {
 					self.items.remove(item!)
@@ -94,8 +92,7 @@ class DownloadListWindowController: NSWindowController, NSTableViewDelegate, NST
 		}
 		self.downloadChangedHndl = nc.addObserverForName(VideoStoreNotificationDownloadProgressChanged, object: nil, queue: NSOperationQueue.mainQueue()) { note in
 			if let info = note.userInfo {
-				if let object = note.object as? String {
-					let url = object as String
+				if let url = note.object as? String {
 					let (item, idx) = self.listItemForURL(url)
 					if let item = item {
 						if let expected = info["totalBytesExpectedToWrite"] as? Int,
@@ -111,8 +108,7 @@ class DownloadListWindowController: NSWindowController, NSTableViewDelegate, NST
 		}
 		self.downloadCancelledHndl = nc.addObserverForName(VideoStoreNotificationDownloadCancelled, object: nil, queue: NSOperationQueue.mainQueue()) { note in
 			if let object = note.object as? String {
-				let url = object as String
-				let (item, idx) = self.listItemForURL(url)
+				let (item, idx) = self.listItemForURL(object)
 				if item != nil {
 					self.items.remove(item!)
 					self.tableView.removeRowsAtIndexes(NSIndexSet(index: self.tableView.selectedRow), withAnimation: .EffectGap)
@@ -120,8 +116,7 @@ class DownloadListWindowController: NSWindowController, NSTableViewDelegate, NST
 			}
 		}
 		self.downloadPausedHndl = nc.addObserverForName(VideoStoreNotificationDownloadPaused, object: nil, queue: NSOperationQueue.mainQueue()) { note in
-			if let object = note.object as? String {
-				let url = object as String
+			if let url = note.object as? String {
 				let (item, idx) = self.listItemForURL(url)
 				if item != nil {
 					self.tableView.reloadDataForRowIndexes(NSIndexSet(index: idx), columnIndexes: NSIndexSet(index: 0))
@@ -129,8 +124,7 @@ class DownloadListWindowController: NSWindowController, NSTableViewDelegate, NST
 			}
 		}
 		self.downloadResumedHndl = nc.addObserverForName(VideoStoreNotificationDownloadResumed, object: nil, queue: NSOperationQueue.mainQueue()) { note in
-			if let object = note.object as? String {
-				let url = object as String
+			if let url = note.object as? String {
 				let (item, idx) = self.listItemForURL(url)
 				if item != nil {
 					self.tableView.reloadDataForRowIndexes(NSIndexSet(index: idx), columnIndexes: NSIndexSet(index: 0))
@@ -139,8 +133,8 @@ class DownloadListWindowController: NSWindowController, NSTableViewDelegate, NST
 		}
 	}
 	
-	private func listItemForURL(url: String!) -> (DownloadListItem?, Int) {
-		for (idx, item) in enumerate(self.items) {
+	private func listItemForURL(url: String) -> (DownloadListItem?, Int) {
+		for (idx, item) in self.items.enumerate() {
 			if item.url == url {
 				return (item, idx)
 			}
@@ -163,9 +157,9 @@ class DownloadListWindowController: NSWindowController, NSTableViewDelegate, NST
 		let tasks = self.videoStore.allTasks()
 		let sessions = DataStore.SharedStore.cachedSessions!
 		for task in tasks {
-			if let url = task.originalRequest.URL?.absoluteString {
+			if let url = task.originalRequest?.URL?.absoluteString {
 				let session = sessions.filter { $0.hd_url == url }.first
-				var item = DownloadListItem(url: url, session: session!, task: task)
+				let item = DownloadListItem(url: url, session: session!, task: task)
 				self.items.append(item)
 			}
 		}
@@ -188,7 +182,7 @@ class DownloadListWindowController: NSWindowController, NSTableViewDelegate, NST
 	
 	func tableView(tableView: NSTableView, viewForTableColumn tableColumn: NSTableColumn?, row: Int) -> NSView? {
 		let identifier = tableColumn?.identifier
-		var cellView = tableView.makeViewWithIdentifier(identifier!, owner: self) as! DownloadListCellView
+		let cellView = tableView.makeViewWithIdentifier(identifier!, owner: self) as! DownloadListCellView
 		let item = self.items[row]
         
 		cellView.textField?.stringValue = "WWDC \(item.session.year) - \(item.session.title)"

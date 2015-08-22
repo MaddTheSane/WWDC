@@ -8,6 +8,8 @@
 
 #import <Cocoa/Cocoa.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class WWDCSessionTranscript;
 
 @interface WWDCTranscriptViewController : NSViewController
@@ -28,3 +30,5 @@
 @property (nonatomic, copy) NSColor *backgroundColor;
 
 @end
+
+NS_ASSUME_NONNULL_END

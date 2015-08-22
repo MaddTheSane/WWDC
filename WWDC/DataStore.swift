@@ -53,13 +53,13 @@ class DataStore: NSObject {
     let URLSession2 = NSURLSession(configuration: NSURLSessionConfiguration.ephemeralSessionConfiguration())
     
 	func fetchSessions(completionHandler: fetchSessionsCompletionHandler) {
-		if let appleURL = appleSessionsURL {
+		if let _ = appleSessionsURL {
 			doFetchSessions(completionHandler)
 		} else {
 			let internalServiceURL = NSURL(string: _internalServiceURL)
 
 			URLSession.dataTaskWithURL(internalServiceURL!, completionHandler: { [unowned self] data, response, error in
-				if data == nil {
+				guard let data = data else {
 					completionHandler(false, [])
 					return
 				}
@@ -80,7 +80,7 @@ class DataStore: NSObject {
         if disableCache {
             if let url = appleSessionsURL {
                 sranddev()
-                appleSessionsURL = NSURL(string: "\(url.absoluteString!)?\(rand())")
+                appleSessionsURL = NSURL(string: "\(url.absoluteString)?\(rand())")
             }
         }
         
@@ -89,7 +89,7 @@ class DataStore: NSObject {
 	
     func doFetchSessions(completionHandler: fetchSessionsCompletionHandler) {
         URLSession.dataTaskWithURL(appleSessionsURL!, completionHandler: { data, response, error in
-            if data == nil {
+            guard let data = data else {
                 completionHandler(false, [])
                 return
             }
@@ -121,7 +121,7 @@ class DataStore: NSObject {
                     }
                 }
 				
-                sessions = sessions.sorted { sessionA, sessionB in
+                sessions = sessions.sort { sessionA, sessionB in
 					if(sessionA.year == sessionB.year) {
 						return sessionA.id < sessionB.id
 					} else {
@@ -212,7 +212,7 @@ class DataStore: NSObject {
     
     func checkForLiveEvent(completionHandler: (Bool, LiveEvent?) -> ()) {
         let task = URLSession2.dataTaskWithURL(liveURL) { data, response, error in
-            if data == nil || data.length == 0 {
+			guard let data = data where data.length != 0 else {
                 completionHandler(false, nil)
                 return
             }
@@ -231,7 +231,7 @@ class DataStore: NSObject {
     
     func fetchNextLiveEvent(completionHandler: (Bool, LiveEvent?) -> ()) {
         let task = URLSession2.dataTaskWithURL(liveNextURL) { data, response, error in
-            if data == nil || data.length == 0 {
+			guard let data = data where data.length != 0 else {
                 completionHandler(false, nil)
                 return
             }

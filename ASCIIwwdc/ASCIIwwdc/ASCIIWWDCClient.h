@@ -10,10 +10,14 @@
 
 @class WWDCSessionTranscript;
 
+NS_ASSUME_NONNULL_BEGIN
+
 @interface ASCIIWWDCClient : NSObject
 
 + (ASCIIWWDCClient *)sharedClient;
 
-- (void)fetchTranscriptForYear:(int)year session:(int)session completionHandler:(void (^)(BOOL success, WWDCSessionTranscript *transcript))callback;
+- (void)fetchTranscriptForYear:(int)year session:(int)session completionHandler:(void (^)(BOOL success, WWDCSessionTranscript *__nullable transcript))callback;
 
 @end
+
+NS_ASSUME_NONNULL_END
