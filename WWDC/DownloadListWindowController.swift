@@ -8,7 +8,15 @@
 
 import Cocoa
 
-private class DownloadListItem : NSObject {
+private func ==(lhs: DownloadListItem, rhs: DownloadListItem) -> Bool {
+	if lhs === rhs {
+		return true
+	}
+	
+	return lhs.url == rhs.url && lhs.task == rhs.task
+}
+
+private final class DownloadListItem: Equatable {
 	
 	let url: String
 	let session: Session
