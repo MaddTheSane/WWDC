@@ -1226,7 +1226,8 @@
 		DD92EA481AE9611B00D503AE /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0700;
+				LastSwiftMigration = 0710;
+				LastUpgradeCheck = 0710;
 				ORGANIZATIONNAME = "Guilherme Rambo";
 				TargetAttributes = {
 					DD92EA501AE9611B00D503AE = {
@@ -1533,6 +1534,7 @@
 				INFOPLIST_FILE = ASCIIwwdc/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks @executable_path/../../../";
+				PRODUCT_BUNDLE_IDENTIFIER = "br.com.guilhermerambo.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -1550,6 +1552,7 @@
 				INFOPLIST_FILE = ASCIIwwdc/Info.plist;
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks @executable_path/../../../";
+				PRODUCT_BUNDLE_IDENTIFIER = "br.com.guilhermerambo.$(PRODUCT_NAME:rfc1034identifier)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};

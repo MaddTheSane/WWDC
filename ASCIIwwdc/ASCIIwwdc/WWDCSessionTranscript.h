@@ -21,7 +21,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (readonly) NSString *fullText;
 @property (readonly) NSString *htmlString;
 
-@property (readonly) NSArray<NSValue*> *timecodes;
+@property (readonly) NSArray<NSValue *> *timecodes;
 
 @end
 

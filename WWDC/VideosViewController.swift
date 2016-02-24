@@ -215,33 +215,17 @@ class VideosViewController: NSViewController, NSTableViewDelegate, NSTableViewDa
             return cell
         }
         
-        let session = displayedSessions[row]
-        cell.titleField.stringValue = session.title
-        cell.trackField.stringValue = session.track
-        cell.platformsField.stringValue = ", ".join(session.focus)
-        cell.detailsField.stringValue = "\(session.year) - Session \(session.id)"
-        cell.progressView.progress = session.progress
-        cell.progressView.favorite = session.favorite
-        
-        if let url = session.hd_url {
-            let videoStore = VideoStore.SharedStore()
+        cell.session = displayedSessions[row]
 
-            if videoStore.hasVideo(url) {
-                cell.downloadedImage.hidden = false
-                cell.downloadedImage.image = NSImage(named: "downloaded")
-            } else if videoStore.isDownloading(url) {
-                cell.downloadedImage.hidden = false
-                cell.downloadedImage.image = NSImage(named: "downloading")
-            } else {
-                cell.downloadedImage.hidden = true
-            }
-        }
-        
         return cell
     }
     
     func tableView(tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
         return 40.0
+    }
+    
+    func tableView(tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        return tableView.makeViewWithIdentifier("row", owner: tableView) as? NSTableRowView
     }
     
     // MARK: Table Menu
@@ -313,7 +297,7 @@ class VideosViewController: NSViewController, NSTableViewDelegate, NSTableViewDa
         var stringToCopy:String?
         
         if tableView.selectedRowIndexes.count < 2 && tableView.clickedRow >= 0 {
-            var session = displayedSessions[tableView.clickedRow]
+            let session = displayedSessions[tableView.clickedRow]
             stringToCopy = session.shareURL
         } else {
             stringToCopy = ""

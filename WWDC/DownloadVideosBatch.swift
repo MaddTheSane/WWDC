@@ -89,18 +89,21 @@ class DownloadVideosBatch: NSObject {
                     }
                 }
                 self.downloadCancelledHndl = nc.addObserverForName(VideoStoreNotificationDownloadCancelled, object: nil, queue: NSOperationQueue.mainQueue()) { note in
-                    if let _ = note.object as? String {
+                    if let object = note.object as? String {
+                        _ = object as String
                         print("Download of session \(self.currentlyDownloadedSession) was cancelled.")
                     }
                 }
                 self.downloadPausedHndl = nc.addObserverForName(VideoStoreNotificationDownloadPaused, object: nil, queue: NSOperationQueue.mainQueue()) { note in
-                    if let _ = note.object as? String {
+                    if let object = note.object as? String {
+                        _ = object as String
                         print("Download of session \(self.currentlyDownloadedSession) was paused.")
                         
                     }
                 }
                 self.downloadResumedHndl = nc.addObserverForName(VideoStoreNotificationDownloadResumed, object: nil, queue: NSOperationQueue.mainQueue()) { note in
-                    if let _ = note.object as? String {
+                    if let object = note.object as? String {
+                        _ = object as String
                         print("Download of session \(self.currentlyDownloadedSession) was resumed.")
                     }
                 }

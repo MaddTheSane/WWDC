@@ -39,11 +39,11 @@ class VideoStore : NSObject, NSURLSessionDownloadDelegate {
     
     func initialize() {
         backgroundSession.getTasksWithCompletionHandler { _, _, pendingTasks in
-                for task in pendingTasks {
-                    if let key = task.originalRequest?.URL?.absoluteString {
-                        self.downloadTasks[key] = task
-                    }
+            for task in pendingTasks {
+                if let key = task.originalRequest?.URL!.absoluteString {
+                    self.downloadTasks[key] = task
                 }
+            }
         }
         
         NSNotificationCenter.defaultCenter().addObserverForName(LocalVideoStoragePathPreferenceChangedNotification, object: nil, queue: nil) { _ in
@@ -66,7 +66,7 @@ class VideoStore : NSObject, NSURLSessionDownloadDelegate {
         }
         
         let task = backgroundSession.downloadTaskWithURL(NSURL(string: url)!)
-		if let key = task.originalRequest?.URL?.absoluteString {
+		if let key = task.originalRequest?.URL!.absoluteString {
 			self.downloadTasks[key] = task
 		}
         task.resume()
@@ -109,12 +109,12 @@ class VideoStore : NSObject, NSURLSessionDownloadDelegate {
         let downloading = downloadTasks.keys.filter { taskURL in
             return url == taskURL
         }
-        
-        return (downloading.array.count > 0)
+
+        return (downloading.count > 0)
     }
     
-    func localVideoPath(remoteURL: NSString) -> String {
-        return (Preferences.SharedPreferences().localVideoStoragePath as NSString).stringByAppendingPathComponent(remoteURL.lastPathComponent)
+    func localVideoPath(remoteURL: String) -> String {
+        return (Preferences.SharedPreferences().localVideoStoragePath as NSString).stringByAppendingPathComponent((remoteURL as NSString).lastPathComponent)
     }
     
     func localVideoAbsoluteURLString(remoteURL: String) -> String {
@@ -141,13 +141,12 @@ class VideoStore : NSObject, NSURLSessionDownloadDelegate {
         }
         
         let localURL = NSURL(fileURLWithPath: localVideoPath(originalAbsoluteURLString))
-		
-		do {
-			try fileManager.moveItemAtURL(location, toURL: localURL)
-		} catch _ {
-			print("VideoStore was unable to move \(location) to \(localURL)")
-
-		}
+        
+        do {
+            try fileManager.moveItemAtURL(location, toURL: localURL)
+        } catch _ {
+            print("VideoStore was unable to move \(location) to \(localURL)")
+        }
         
         downloadTasks.removeValueForKey(originalAbsoluteURLString)
         
