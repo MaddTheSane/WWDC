@@ -32,7 +32,7 @@ class ActionButtonsViewController: NSViewController {
     @IBOutlet var watchButton: NSButton!
     @IBOutlet var slidesButton: NSButton!
     @IBOutlet var progressButton: NSButton!
-
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         updateUI()
@@ -47,8 +47,8 @@ class ActionButtonsViewController: NSViewController {
         
         if let session = session {
             setSessionCanBeWatched(true)
-            setSessionCanBeWatchedInHD((session.hd_url != nil))
-            setSessionHasSlides((session.slides != nil))
+            setSessionCanBeWatchedInHD((session.hdVideoURL != ""))
+            setSessionHasSlides((session.slidesURL != ""))
             reflectSessionProgress()
         } else {
             noSession()

@@ -10,8 +10,22 @@ import Cocoa
 
 class VideosHeaderViewController: NSViewController {
     
-    @IBOutlet weak var searchBar: NSSearchField!
-    @IBOutlet weak var searchBarBottomConstraint: NSLayoutConstraint!
+    var progress: NSProgress? {
+        didSet {
+            searchBar.progress = progress
+        }
+    }
+    var searchTerm: String? {
+        get {
+            return searchBar.stringValue == "" ? nil : searchBar.stringValue
+        }
+        set {
+            guard !searchBar.isFirstResponder else { return }
+            searchBar.stringValue = newValue ?? ""
+        }
+    }
+    @IBOutlet weak private var searchBar: ProgressSearchField!
+    @IBOutlet weak private var searchBarBottomConstraint: NSLayoutConstraint!
     
     var performSearch: ((term: String) -> Void)?
     
@@ -46,5 +60,9 @@ class VideosHeaderViewController: NSViewController {
         if let callback = performSearch {
             callback(term: sender.stringValue)
         }
+    }
+    
+    @IBAction func activateSearchField(sender: AnyObject) {
+        searchBar.window?.makeFirstResponder(searchBar)
     }
 }

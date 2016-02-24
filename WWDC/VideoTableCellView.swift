@@ -8,10 +8,14 @@
 
 import Cocoa
 import ViewUtils
+import KVOController
 
 class VideoTableCellView: NSTableCellView {
     
     var session: Session! {
+        willSet {
+            KVOController.unobserve(session)
+        }
         didSet {
             updateUI()
         }
@@ -28,14 +32,30 @@ class VideoTableCellView: NSTableCellView {
         }
     }
     
-    func updateUI() {
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        
+        NSNotificationCenter.defaultCenter().removeObserver(self)
+        KVOController.unobserve(session)
+    }
+
+    private func updateUI() {
+        KVOController.observe(session, keyPath: "favorite", options: .New, action: "updateSessionFlags")
+        KVOController.observe(session, keyPath: "progress", options: .New, action: "updateSessionFlags")
+        
+        NSNotificationCenter.defaultCenter().addObserverForName(VideoStoreNotificationDownloadCancelled, object: nil, queue: NSOperationQueue.mainQueue()) { note in
+            self.updateDownloadImage()
+        }
+        
         titleField.stringValue = session.title
         detailsField.stringValue = "\(session.year) - Session \(session.id) - \(session.track)"
-        progressView.progress = session.progress
-        progressView.favorite = session.favorite
         
+        updateSessionFlags()
         updateTint()
-        
+        updateDownloadImage()
+    }
+    
+    func updateDownloadImage() {
         if let url = session.hd_url {
             let videoStore = VideoStore.SharedStore()
             
@@ -48,7 +68,14 @@ class VideoTableCellView: NSTableCellView {
             } else {
                 downloadedImage.hidden = true
             }
+        } else {
+            downloadedImage.hidden = true
         }
+    }
+    
+    func updateSessionFlags() {
+        progressView.progress = session.progress
+        progressView.favorite = session.favorite
     }
     
     func updateTint() {

@@ -9,7 +9,6 @@
 import Cocoa
 import AVFoundation
 import AVKit
-import ASCIIwwdc
 import ViewUtils
 
 private let _nibName = "VideoWindowController"
@@ -17,12 +16,13 @@ private let _nibName = "VideoWindowController"
 class VideoWindowController: NSWindowController {
 
     var session: Session?
-    var event: LiveEvent?
+    var event: LiveSession?
     
     var videoURL: String?
+    var startTime: Double?
     
-    var asset: AVAsset!
-    var item: AVPlayerItem!
+    weak var asset: AVAsset!
+    weak var item: AVPlayerItem!
     
     var transcriptWC: TranscriptWindowController!
     var playerWindow: GRPlayerWindow {
@@ -38,11 +38,18 @@ class VideoWindowController: NSWindowController {
         self.videoURL = videoURL
     }
     
-    convenience init(event: LiveEvent, videoURL: String) {
+    convenience init(session: Session, videoURL: String, startTime: Double?) {
+        self.init(windowNibName: _nibName)
+        self.session = session
+        self.videoURL = videoURL
+        self.startTime = startTime
+    }
+    
+    convenience init(event: LiveSession, videoURL: String) {
         self.init(windowNibName: _nibName)
         self.event = event
         self.videoURL = videoURL
-        NSNotificationCenter.defaultCenter().addObserverForName(LiveEventTitleAvailableNotification, object: nil, queue: NSOperationQueue.mainQueue()) { note in
+        NSNotificationCenter.defaultCenter().addObserverForName(LiveEventTitleAvailableNotification, object: nil, queue: NSOperationQueue.mainQueue()) { [unowned self] note in
             if let title = note.object as? String {
                 self.window?.title = "\(title) (Live)"
             }
@@ -52,7 +59,7 @@ class VideoWindowController: NSWindowController {
     @IBOutlet weak var customPlayerView: GRCustomPlayerView!
     @IBOutlet weak var playerView: AVPlayerView!
     @IBOutlet weak var progressIndicator: NSProgressIndicator!
-    var player: AVPlayer? {
+    weak var player: AVPlayer? {
         didSet {
             if let player = player {
                 if #available(OSX 10.11, *) {
@@ -71,6 +78,8 @@ class VideoWindowController: NSWindowController {
     
     override func windowDidLoad() {
         super.windowDidLoad()
+        
+        NSNotificationCenter.defaultCenter().addObserver(self, selector: Selector("windowWillClose:"), name: NSWindowWillCloseNotification, object: self.window)
         
         activity = NSProcessInfo.processInfo().beginActivityWithOptions([.IdleDisplaySleepDisabled, .IdleSystemSleepDisabled, .UserInitiated], reason: "Playing WWDC session video")
 
@@ -94,6 +103,9 @@ class VideoWindowController: NSWindowController {
                             }
                         }
                         
+                        if let startAt = self.startTime {
+                            self.seekTo(startAt)
+                        }
                         self.player?.play()
                         self.progressIndicator.stopAnimation(nil)
                     }
@@ -105,7 +117,7 @@ class VideoWindowController: NSWindowController {
             window?.title = "WWDC \(session.year) | \(session.title)"
             
             // pause playback when a live event starts playing
-            NSNotificationCenter.defaultCenter().addObserverForName(LiveEventWillStartPlayingNotification, object: nil, queue: nil) { _ in
+            NSNotificationCenter.defaultCenter().addObserverForName(LiveEventWillStartPlayingNotification, object: nil, queue: nil) { [unowned self] _ in
                 self.player?.pause()
             }
         }
@@ -119,26 +131,40 @@ class VideoWindowController: NSWindowController {
             
             loadEventVideo()
         }
+    }
+    
+    func windowWillClose(note: NSNotification!) {
+        player?.cancelPendingPrerolls()
+        player?.pause()
+        asset = nil
+        item = nil
+        player = nil
         
-        NSNotificationCenter.defaultCenter().addObserverForName(NSWindowWillCloseNotification, object: self.window, queue: nil) { _ in
-            if let activity = self.activity {
-                NSProcessInfo.processInfo().endActivity(activity)
-            }
-            
-            if self.event != nil {
-                if self.item != nil {
-                    self.item.removeObserver(self, forKeyPath: "status")
-                }
-            }
-            
-            self.transcriptWC?.close()
-            
-            self.player?.pause()
+        NSNotificationCenter.defaultCenter().removeObserver(self)
+        
+        if let observer: AnyObject = timeObserver {
+            player?.removeTimeObserver(observer)
         }
+        if let observer: AnyObject = boundaryObserver {
+            player?.removeTimeObserver(observer)
+        }
+        
+        if let activity = self.activity {
+            NSProcessInfo.processInfo().endActivity(activity)
+        }
+        
+        if self.event != nil {
+            if self.item != nil {
+                self.item.removeObserver(self, forKeyPath: "status")
+            }
+        }
+        
+        self.transcriptWC?.close()
+        self.transcriptWC = nil
     }
     
     private func loadEventVideo() {
-        if let url = event!.stream {
+        if let url = event?.streamURL {
             asset = AVURLAsset(URL: url, options: nil)
             asset.loadValuesAsynchronouslyForKeys(["playable"]) {
                 dispatch_async(dispatch_get_main_queue()) {
@@ -171,56 +197,62 @@ class VideoWindowController: NSWindowController {
         }
     }
     
+    func seekTo(time: Double) {
+        player?.seekToTime(CMTimeMakeWithSeconds(time, 6000), toleranceBefore: kCMTimeZero, toleranceAfter: kCMTimeZero)
+    }
+    
     func toggleFullScreen(sender: AnyObject?) {
         window!.toggleFullScreen(sender)
     }
     
     func showTranscriptWindow(sender: AnyObject?) {
-        guard session != nil else { return }
-        
+        guard let session = session where session.transcript != nil else { return }
+
         if transcriptWC != nil {
             if let window = transcriptWC.window {
                 window.orderFront(sender)
             }
-            
+
             return
         }
-        
-        if let session = session {
-            transcriptWC = TranscriptWindowController(session: session)
-            transcriptWC.showWindow(sender)
-            transcriptWC.jumpToTimeCallback = { [unowned self] time in
-                guard let player = self.player else { return }
-                player.seekToTime(CMTimeMakeWithSeconds(time, 30))
-            }
-            transcriptWC.transcriptReadyCallback = { [unowned self] transcript in
-                self.setupTranscriptSync(transcript)
-            }
+
+        transcriptWC = TranscriptWindowController(session: session)
+        transcriptWC.showWindow(sender)
+        transcriptWC.jumpToTimeCallback = { [unowned self] time in
+            guard let player = self.player else { return }
+            player.seekToTime(CMTimeMakeWithSeconds(time, player.currentItem!.duration.timescale))
         }
+
+        setupTranscriptSync(session.transcript!)
     }
     
     var timeObserver: AnyObject?
     
     func setupTimeObserver() {
-        guard session != nil else { return }
+        guard session != nil && timeObserver == nil else { return }
         
-        timeObserver = player?.addPeriodicTimeObserverForInterval(CMTimeMakeWithSeconds(5, 1), queue: dispatch_get_main_queue()) { [unowned self] currentTime in
-            let progress = Double(CMTimeGetSeconds(currentTime)/CMTimeGetSeconds(self.player!.currentItem!.duration))
+        timeObserver = player?.addPeriodicTimeObserverForInterval(CMTimeMakeWithSeconds(5, 1), queue: dispatch_get_main_queue()) { [weak self] currentTime in
+            guard let weakSelf = self else { return }
+            
+            let progress = Double(CMTimeGetSeconds(currentTime)/CMTimeGetSeconds(weakSelf.player!.currentItem!.duration))
 
-            self.session!.progress = progress
-            self.session!.currentPosition = CMTimeGetSeconds(currentTime)
+            WWDCDatabase.sharedDatabase.doChanges {
+                weakSelf.session!.progress = progress
+                weakSelf.session!.currentPosition = CMTimeGetSeconds(currentTime)
+            }
         }
     }
     
     var boundaryObserver: AnyObject?
     
-    func setupTranscriptSync(transcript: WWDCSessionTranscript) {
-        guard transcriptWC != nil else { return }
+    func setupTranscriptSync(transcript: Transcript) {
+        guard let player = player where transcriptWC != nil else { return }
         
-        boundaryObserver = player?.addBoundaryTimeObserverForTimes(transcript.timecodes, queue: dispatch_get_main_queue()) { [unowned self] in
+        boundaryObserver = player.addBoundaryTimeObserverForTimes(transcript.timecodesWithTimescale(player.currentItem!.duration.timescale), queue: dispatch_get_main_queue()) { [unowned self] in
             guard self.transcriptWC != nil else { return }
 
-            let roundedTimecode = WWDCTranscriptLine.roundedStringFromTimecode(CMTimeGetSeconds(self.player!.currentTime()))
+            let ct = CMTimeGetSeconds(self.player!.currentTime())
+            let roundedTimecode = Transcript.roundedStringFromTimecode(ct)
             self.transcriptWC.highlightLineAt(roundedTimecode)
         }
     }
@@ -301,15 +333,26 @@ class VideoWindowController: NSWindowController {
         sizeWindowTo(0.25)
     }
     
-    deinit {
-        NSNotificationCenter.defaultCenter().removeObserver(self)
+}
+
+extension Transcript {
+    
+    func timecodesWithTimescale(timescale: Int32) -> [NSValue] {
+        var results: [NSValue] = []
         
-        if let observer: AnyObject = timeObserver {
-            player?.removeTimeObserver(observer)
+        for line in lines {
+            let time = CMTimeMakeWithSeconds(line.timecode, timescale)
+            results.append(NSValue(CMTime: time))
         }
-        if let observer: AnyObject = boundaryObserver {
-            player?.removeTimeObserver(observer)
-        }
+        
+        return results
+    }
+    
+    class func roundedStringFromTimecode(timecode: Float64) -> String {
+        let formatter = NSNumberFormatter()
+        formatter.positiveFormat = "0.#"
+        
+        return formatter.stringFromNumber(timecode)!
     }
     
 }
